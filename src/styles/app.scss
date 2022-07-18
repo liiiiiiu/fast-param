@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+body {
+  padding: 24px;
+  box-sizing: border-box;
+  background-color: #f0f2f5;
+}
+
+.prism-editor__textarea:focus {
+  outline: none;
+}
