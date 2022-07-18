@@ -2,7 +2,9 @@
 
 ⚡️ Vue3 + Vite + Typescript ⚡️ 开发的一款工具，用于前端快速生成不同业务场景下的对象属性。
 
-![fast-param-1.png](https://s2.loli.net/2022/07/18/cr4VFewjKpUJbRd.png)
+![fast-param](https://s2.loli.net/2022/07/18/XNbZE5BpJsntRdY.png)
+
+![fast-param](https://s2.loli.net/2022/07/18/dWvLPaGgKp5JYs7.png)
 
 [在线预览](https://fastparam.liiiiiiu.com/)
 
