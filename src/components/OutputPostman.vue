@@ -20,10 +20,11 @@
 </template>
 
 <script lang="ts">
+import { defineComponent, PropType, watch } from 'vue'
+import { CopyOutlined } from '@ant-design/icons-vue'
 import { PrismEditor } from 'vue-prism-editor'
 import 'vue-prism-editor/dist/prismeditor.min.css'
-import { CopyOutlined } from '@ant-design/icons-vue'
-import { defineComponent, PropType, watch } from 'vue'
+
 import OutputMixin from './Mixins/Output'
 import { InputParamType } from '../types'
 
@@ -38,9 +39,7 @@ export default defineComponent({
       type: Array as PropType<Array<InputParamType>>,
       default: []
     },
-
-    doubleQuotation: Boolean,
-
+    doubleQuote: Boolean,
     needUpdate: Boolean
   },
 
@@ -52,8 +51,6 @@ export default defineComponent({
     })
 
     const { code, highlighter, genApiCode, copyCode } = OutputMixin(props)
-
-
 
     return {
       code,

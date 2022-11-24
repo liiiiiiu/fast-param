@@ -4,11 +4,11 @@
 
       <navbar @update="runInput" />
 
-      <input-table :raw="raw.lists" :update-trigger="updateInputTrigger" @update="runOutput" />
+      <input-table :raw="raw.list" :update-trigger="updateInputTrigger" @update="runOutput" />
 
-      <a-divider style="height: 2px; background-color: #d6d6d6" />
+      <a-divider style="height: 2px;" />
 
-      <output-cards :raw="raw.lists" :update-trigger="updateOutputTrigger" />
+      <output-cards :raw="raw.list" :update-trigger="updateOutputTrigger" />
 
       <a-back-top />
 
@@ -17,10 +17,12 @@
 </template>
 
 <script lang="ts">
-import _ from 'lodash'
-import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import { defineComponent, reactive, ref } from 'vue'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import _ from 'lodash'
+
 import { Navbar, InputTable, OutputCards } from '@/components'
+
 import { InputParamType } from '@/types'
 
 export default defineComponent({
@@ -31,20 +33,20 @@ export default defineComponent({
   },
 
   setup() {
-    let updateInputTrigger = ref(false)
-    let updateOutputTrigger = ref(false)
+    const updateInputTrigger = ref(false)
+    const updateOutputTrigger = ref(false)
 
-    let raw = reactive({
-      lists: [] as InputParamType[]
+    const raw = reactive({
+      list: [] as InputParamType[]
     })
 
     const runInput = value => {
-      raw.lists = _.cloneDeep(value)
+      raw.list = _.cloneDeep(value)
       updateInputTrigger.value = !updateInputTrigger.value
     }
 
     const runOutput = value => {
-      raw.lists = _.cloneDeep(value)
+      raw.list = _.cloneDeep(value)
       updateOutputTrigger.value = !updateOutputTrigger.value
     }
 

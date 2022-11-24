@@ -7,4 +7,6 @@ export interface InputParamType {
   defaultValue: any
   description: string | null
   frontend: number
+  min: number
+  max: number
 }

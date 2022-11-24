@@ -7,7 +7,7 @@ export const appInfoStore = defineStore('appInfo', {
     return {
       logo: logo,
       appTitle: 'Fast Param',
-      appSlogan: '快速生成前端不同业务场景下的对象属性'
+      appSlogan: '快速为对象生成不同形态的属性'
     }
   },
   getters: {

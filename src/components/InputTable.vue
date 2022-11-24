@@ -4,34 +4,41 @@
     <a-row>
       <a-col :span="24">
         <div>
-          <div class="mb-3">
-            <a-space>
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center">
+              <a-button type="dashed" class="mr-4" @click="add">添加属性</a-button>
 
-              <a-button type="dashed" @click="add">添加属性</a-button>
+              <a-popconfirm v-if="dataSource.list.length" title="清空所有属性？" @confirm="deleteAll">
+                <a-button type="dashed" danger>清空属性</a-button>
+              </a-popconfirm>
+            </div>
 
-              <template v-if="dataSource.length">
-                <a-popconfirm title="清空所有属性？" @confirm="deleteAll">
-                  <a-button type="dashed" danger>清空属性</a-button>
-                </a-popconfirm>
-
-                <a-divider type="vertical" />
-
-                <a-tooltip placement="top">
-                  <template #title>
-                    <span>保存对象</span>
+            <div v-if="dataSource.list.length" class="flex items-center">
+              <a-tooltip placement="top">
+                <template #title>
+                  <span>保存为图片</span>
+                </template>
+                <a-button shape="circle" @click="saveInputTable2Image" class="mr-4">
+                  <template #icon>
+                    <picture-outlined />
                   </template>
-                  <a-button type="primary" shape="circle" @click="saveInputTableVisible = true">
-                    <template #icon>
-                      <save-filled />
-                    </template>
-                  </a-button>
-                </a-tooltip>
-              </template>
+                </a-button>
+              </a-tooltip>
 
-            </a-space>
+              <a-tooltip placement="top">
+                <template #title>
+                  <span>保存对象</span>
+                </template>
+                <a-button shape="circle" @click="saveInputTableVisible = true">
+                  <template #icon>
+                    <save-outlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
+            </div>
           </div>
 
-          <a-table :columns="columns" :data-source="dataSource" bordered :pagination="false" size="small">
+          <a-table id="table" :columns="!isSaving ? columns.filter(col => col.colSpan !== 0) : columns.filter(col => (col.colSpan !== 0 && col.dataIndex !== 'operation'))" :data-source="dataSource.list" :loading="isSaving" bordered :pagination="false" :custom-row="handleCustomRow" size="small">
             <template #bodyCell="{ column, text, record }">
               <template v-if="['name', 'defaultValue', 'description'].includes(column.dataIndex)">
                 <div>
@@ -42,6 +49,25 @@
                   </template>
                 </div>
               </template>
+              <template v-else-if="column.dataIndex === 'types'">
+                <div>
+                  <a-checkbox-group v-if="editableData[record.key]"
+                    v-model:value="editableData[record.key][column.dataIndex]" name="checkboxgroup"
+                    :options="typeOptions" style="margin: -5px 0" />
+                  <template v-else>
+                    <span>{{ text.join(',') }}</span>
+                    <span v-if="text.includes('string') && (record.min || record.max)" class="pl-2">
+                      [{{ record.min }}, {{ record.max }}]
+                    </span>
+                  </template>
+
+                  <div v-if="editableData[record.key] && editableData[record.key][column.dataIndex].includes('string')" class="flex item-center mt-4">
+                    <a-input v-model:value="editableData[record.key]['min']" type="number" placeholder="min" class="mr-2" />
+
+                    <a-input v-model:value="editableData[record.key]['max']" type="number" placeholder="max" />
+                  </div>
+                </div>
+              </template>
               <template v-else-if="['optional', 'readonly', 'frontend'].includes(column.dataIndex)">
                 <div>
                   <a-radio-group v-if="editableData[record.key]"
@@ -50,17 +76,12 @@
                     <a-radio :value="0">否</a-radio>
                   </a-radio-group>
                   <template v-else>
-                    {{ !!text ? '是' : '否' }}
-                  </template>
-                </div>
-              </template>
-              <template v-else-if="column.dataIndex === 'types'">
-                <div>
-                  <a-checkbox-group v-if="editableData[record.key]"
-                    v-model:value="editableData[record.key][column.dataIndex]" name="checkboxgroup"
-                    :options="typeOptions" style="margin: -5px 0" />
-                  <template v-else>
-                    {{ text.join(',') }}
+                    <span v-if="column.dataIndex !== 'frontend'">
+                      {{ !!text ? '是' : '否' }}
+                    </span>
+                    <span v-else :class="[!!text ? 'text-green-600': '']">
+                      {{ !!text ? '是' : '否' }}
+                    </span>
                   </template>
                 </div>
               </template>
@@ -84,17 +105,25 @@
       </a-col>
     </a-row>
 
-    <save-input-table-drawer :visible="saveInputTableVisible" :data-source="dataSource" @close="saveInputTableVisible = false" />
+    <save-input-table-drawer :visible="saveInputTableVisible" :data-source="dataSource.list" @close="saveInputTableVisible = false" />
+
+    <save-input-table-to-image-drawer :visible="saveInputTable2ImageVisible" :canvas="inputTableCanvas" @close="saveInputTable2ImageVisible = false" />
 
   </div>
 </template>
 
 <script lang="ts">
-import _ from 'lodash'
-import { SaveFilled } from '@ant-design/icons-vue'
 import { defineComponent, ref, reactive, PropType, watch } from 'vue'
 import type { UnwrapRef } from 'vue'
+import _ from 'lodash'
+import { SaveOutlined, PictureOutlined } from '@ant-design/icons-vue'
+import html2canvas from 'html2canvas'
+
 import SaveInputTableDrawer from './SaveInputTableDrawer.vue'
+import SaveInputTableToImageDrawer from './SaveInputTableToImageDrawer.vue'
+
+import { typeOptions } from '@/config/settings'
+import { outputStore } from '@/store'
 import { InputParamType } from '@/types'
 
 const columns = [
@@ -105,15 +134,16 @@ const columns = [
   {
     title: '类型(TypeScript)',
     dataIndex: 'types',
-    // width: '15%',
   },
   {
-    title: '可选(TypeScript)',
-    dataIndex: 'optional',
+    title: '',
+    dataIndex: 'min',
+    colSpan: 0
   },
   {
-    title: '只读(TypeScript)',
-    dataIndex: 'readonly',
+    title: '',
+    dataIndex: 'max',
+    colSpan: 0
   },
   {
     title: '默认值',
@@ -122,6 +152,14 @@ const columns = [
   {
     title: '描述',
     dataIndex: 'description',
+  },
+  {
+    title: '可选(TypeScript)',
+    dataIndex: 'optional',
+  },
+  {
+    title: '只读(TypeScript)',
+    dataIndex: 'readonly',
   },
   {
     title: '前端属性',
@@ -133,27 +171,12 @@ const columns = [
   },
 ]
 
-const typeOptions = [
-  { label: 'string', value: 'string' },
-  { label: 'number', value: 'number' },
-  { label: 'boolean', value: 'boolean' },
-  { label: 'string[]', value: 'string[]' },
-  { label: 'number[]', value: 'number[]' },
-  { label: 'boolean[]', value: 'boolean[]' },
-  { label: 'any[]', value: 'any[]' },
-  { label: 'object', value: 'object' },
-  { label: 'undefined', value: 'undefined' },
-  { label: 'null', value: 'null' },
-  { label: 'any', value: 'any' },
-  { label: 'void', value: 'void' },
-  { label: 'never', value: 'never' },
-  { label: 'unknown', value: 'unknown' },
-]
-
 export default defineComponent({
   components: {
-    SaveFilled,
-    SaveInputTableDrawer
+    SaveOutlined,
+    PictureOutlined,
+    SaveInputTableDrawer,
+    SaveInputTableToImageDrawer
   },
 
   props: {
@@ -161,7 +184,6 @@ export default defineComponent({
       type: Array as PropType<Array<InputParamType>>,
       default: []
     },
-
     updateTrigger: Boolean
   },
 
@@ -169,19 +191,67 @@ export default defineComponent({
 
   setup(props, { emit }) {
     watch(() => props.updateTrigger, (n, _o) => {
-      dataSource.value = props.raw
+      dataSource.list = props.raw
 
-      emit('update', _.cloneDeep(dataSource.value))
+      emit('update', _.cloneDeep(dataSource.list))
     })
 
-    let dataSource = ref([] as InputParamType[])
+    const dataSource = reactive({
+      list: [] as InputParamType[]
+    })
 
-    let editableData: UnwrapRef<Record<string, InputParamType>> = reactive({})
+    const editableData: UnwrapRef<Record<string, InputParamType>> = reactive({})
+
+    const dragSourceObj = ref(null)
+    const dragSourceIndex = ref(0)
+
+    const saveInputTableVisible = ref(false)
+
+    const isSaving = ref(false)
+
+    const saveInputTable2ImageVisible = ref(false)
+    const inputTableCanvas = ref(null)
+
+    const output = outputStore()
+
+    const handleCustomRow = (record, index) => {
+      return {
+        style: {
+          cursor: 'pointer'
+        },
+        onmouseenter: event => {
+          const ev = event || window.event
+          ev.target.draggable = true
+        },
+        ondragstart: event => {
+          const ev = event || window.event
+          ev.stopPropagation()
+
+          dragSourceObj.value = record
+          dragSourceIndex.value = index
+        },
+        ondragover: event => {
+          const ev = event || window.event
+          ev.preventDefault()
+        },
+        ondrop: event => {
+          const ev = event || window.event
+          ev.stopPropagation()
+
+          dataSource.list.splice(dragSourceIndex.value, 1)
+          dataSource.list.splice(index, 0, dragSourceObj.value)
+
+          ev.target.draggable = false
+
+          emit('update', _.cloneDeep(dataSource.list))
+        }
+      }
+    }
 
     const add = () => {
-      const key = dataSource.value.length.toString()
+      const key = dataSource.list.length.toString()
 
-      dataSource.value.push({
+      dataSource.list.push({
         key,
         name: '',
         types: [],
@@ -190,52 +260,81 @@ export default defineComponent({
         defaultValue: null,
         description: '',
         frontend: 0,
+        min: null,
+        max: null
       })
 
       edit(key)
     }
 
     const edit = (key: string) => {
-      editableData[key] = _.cloneDeep(dataSource.value.filter(item => key === item.key)[0])
+      editableData[key] = _.cloneDeep(dataSource.list.filter(item => key === item.key)[0])
     }
 
     const save = (key: string) => {
-      Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key])
+      Object.assign(dataSource.list.filter(item => key === item.key)[0], editableData[key])
       delete editableData[key]
 
-      emit('update', _.cloneDeep(dataSource.value))
+      emit('update', _.cloneDeep(dataSource.list))
     }
 
     const cancel = (key: string) => {
       delete editableData[key]
 
-      emit('update', _.cloneDeep(dataSource.value))
+      emit('update', _.cloneDeep(dataSource.list))
     }
 
     const deleteItem = (key: string) => {
-      for (let i = 0; i < dataSource.value.length; i++) {
-        if (dataSource.value[i].key === key) {
-          dataSource.value.splice(i, 1)
+      for (let i = 0; i < dataSource.list.length; i++) {
+        if (dataSource.list[i].key === key) {
+          dataSource.list.splice(i, 1)
           break
         }
       }
 
-      emit('update', _.cloneDeep(dataSource.value))
+      if (!dataSource.list.length) {
+        deleteAll()
+
+        return
+      }
+
+      emit('update', _.cloneDeep(dataSource.list))
     }
 
     const deleteAll = () => {
-      dataSource.value = []
+      output.setObjName()
+
+      dataSource.list = []
 
       emit('update', [])
     }
 
-    let saveInputTableVisible = ref(false)
+    const saveInputTable2Image = () => {
+      if (isSaving.value) return
+
+      isSaving.value = true
+
+      setTimeout(() => {
+        html2canvas(document.getElementById('table')).then(canvas => {
+          isSaving.value = false
+
+          inputTableCanvas.value = canvas
+
+          saveInputTable2ImageVisible.value = true
+        }).catch(() => {
+          isSaving.value = false
+
+          inputTableCanvas.value = null
+        })
+      }, 100)
+    }
 
     return {
       dataSource,
       columns,
       editingKey: '',
       editableData,
+      handleCustomRow,
       add,
       edit,
       save,
@@ -246,6 +345,13 @@ export default defineComponent({
       typeOptions,
 
       saveInputTableVisible,
+
+      saveInputTable2Image,
+
+      isSaving,
+
+      saveInputTable2ImageVisible,
+      inputTableCanvas
     }
   }
 })

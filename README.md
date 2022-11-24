@@ -1,14 +1,16 @@
 # fast-param
 
-⚡️ Vue3 + Vite + Typescript ⚡️ 开发的一款工具，用于前端快速生成不同业务场景下的对象属性。
+⚡️ Fast Param ⚡️ 用于前端开发时快速为对象生成不同形态的属性。
 
-![fast-param](https://s2.loli.net/2022/07/18/XNbZE5BpJsntRdY.png)
+只需一次输入，便可为对象属性赋默认值、空值、Mock值、TypeScript类型等。
 
-![fast-param](https://s2.loli.net/2022/07/18/dWvLPaGgKp5JYs7.png)
+[在线使用](https://fastparam.liiiiiiu.com/)
 
-[在线预览](https://fastparam.liiiiiiu.com/)
+## 预览
 
-## 使用
+![fast-param](https://s2.loli.net/2022/11/24/IxRraHhi9AgvlUO.png)
+
+## 开发
 
 ```bash
 git clone https://github.com/liiiiiiu/fast-param.git

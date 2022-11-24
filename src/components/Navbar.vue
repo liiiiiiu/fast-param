@@ -12,6 +12,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
+
 import Logo from './Logo.vue'
 import NavbarRight from './NavbarRight.vue'
 import HistoryDrawer from './HistoryDrawer.vue'

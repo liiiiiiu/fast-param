@@ -1,35 +1,38 @@
 <template>
-  <a-drawer title="历史记录" placement="right" :visible="vis" :closable="false" @close="close">
-    <div v-if="history.lists.length" class="mb-3">
-      <a-space>
-        <a-popconfirm title="清空所有记录？" @confirm="deleteAll">
-          <a-button type="dashed" danger>清空记录</a-button>
-        </a-popconfirm>
-      </a-space>
-    </div>
+  <a-drawer :visible="show" placement="right" title="历史记录" :closable="false" @close="close">
+    <template #extra v-if="history.list.length">
+      <a-popconfirm placement="rightTop" title="清空历史记录？" @confirm="deleteAll">
+        <a-button type="dashed" shape="circle" danger>
+          <template #icon>
+            <delete-outlined />
+          </template>
+        </a-button>
+      </a-popconfirm>
+    </template>
 
-    <div v-if="history.lists.length">
-      <div v-for="(item, index) in history.lists" :key="index" class="mb-5">
+    <div v-if="history.list.length">
+      <div v-for="(item, index) in history.list" :key="index" class="mb-4">
         <a-card size="small" :title="item.obj_name" bordered hoverable>
           <template #extra>
-            <a-tooltip placement="top">
-              <template #title>
-                <span>删除</span>
+            <a-button type="dashed" shape="circle" class="mr-4" @click="select(index)">
+              <template #icon>
+                <edit-outlined />
               </template>
-              <a-button type="dashed" shape="circle" danger size="small" @click="deleteItem(index)">
+            </a-button>
+
+            <a-popconfirm placement="rightTop" title="删除记录？" @confirm="deleteItem(index)">
+              <a-button type="dashed" shape="circle" danger>
                 <template #icon>
                   <delete-outlined />
                 </template>
               </a-button>
-            </a-tooltip>
+            </a-popconfirm>
           </template>
 
-          <div @click="select(index)">
-            <a-table :data-source="item.obj_value" size="small" :pagination="false">
-              <a-table-column key="name" title="属性名" data-index="name" />
-              <a-table-column key="description" title="描述" data-index="description" />
-            </a-table>
-          </div>
+          <a-table :data-source="item.obj_value" size="small" :pagination="false">
+            <a-table-column key="name" title="属性名" data-index="name" />
+            <a-table-column key="description" title="描述" data-index="description" />
+          </a-table>
         </a-card>
       </div>
     </div>
@@ -38,15 +41,17 @@
 </template>
 
 <script lang="ts">
-import _ from 'lodash'
-import { DeleteOutlined } from '@ant-design/icons-vue'
 import { defineComponent, reactive, ref, watch } from 'vue'
-import { appInfoStore } from '@/store'
-import { getLocalStorageOfObj, setLocalStorageOfObj, removeLocalStorageOfObj } from '@/storage/localStorage'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue'
+import _ from 'lodash'
+
+import { outputStore } from '@/store'
+import { getLocalObjects, setLocalObjects, removeLocalObjects } from '@/utils/storage'
 
 export default defineComponent({
   components: {
-    DeleteOutlined
+    DeleteOutlined,
+    EditOutlined
   },
 
   props: {
@@ -57,41 +62,43 @@ export default defineComponent({
 
   setup(props, { emit }) {
     watch(() => props.visible, (n) => {
-      vis.value = n
+      show.value = n
 
       if (n) {
         getHistoryData()
       } else {
-        history.lists = []
+        history.list = []
       }
     })
 
-    const appInfo = appInfoStore()
+    const show = ref<boolean>(false)
 
-    let vis = ref<boolean>(false)
+    const output = outputStore()
 
-    let history = reactive({
-      lists: []
+    const history = reactive({
+      list: []
     })
-    function getHistoryData() {
-      history.lists = JSON.parse(getLocalStorageOfObj() || JSON.stringify([]))
-      // console.log('getHistoryData', history.lists)
+
+    async function getHistoryData() {
+      history.list = await getLocalObjects()
     }
 
     const deleteItem = (index: number) => {
-      history.lists.splice(index, 1)
+      history.list.splice(index, 1)
 
-      setLocalStorageOfObj(_.cloneDeep(history.lists))
+      setLocalObjects(_.cloneDeep(history.list))
     }
 
     const deleteAll = () => {
-      history.lists = []
+      history.list = []
 
-      removeLocalStorageOfObj()
+      removeLocalObjects()
     }
 
     const select = (index) => {
-      emit('select', history.lists[index].obj_value)
+      output.setObjName(history.list[index].obj_name)
+
+      emit('select', history.list[index].obj_value)
 
       emit('close')
     }
@@ -101,9 +108,7 @@ export default defineComponent({
     }
 
     return {
-      appInfo,
-
-      vis,
+      show,
 
       history,
 

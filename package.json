@@ -1,7 +1,7 @@
 {
-  "name": "vue-ts",
+  "name": "fast-param",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -12,6 +12,7 @@
     "ant-design-vue": "^3.2.7",
     "big.js": "^6.2.0",
     "html2canvas": "^1.4.1",
+    "localforage": "^1.10.0",
     "lodash": "^4.17.21",
     "mockjs": "^1.1.0",
     "pinia": "^2.0.14",

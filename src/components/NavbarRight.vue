@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-row items-center">
     <a-space>
-      <div class="p-1.5 cursor-pointer">
-        <a href="mailto:1578600238@qq.com">
-          <mail-outlined class="text-2xl" />
+      <div class="mr-0.5 p-1.5 cursor-pointer">
+        <a href="https://github.com/liiiiiiu/fast-param" target="_blank">
+          <github-outlined class="text-2xl" />
         </a>
       </div>
       <div class="p-1.5 cursor-pointer" @click="openHistory">
@@ -19,12 +19,12 @@
 </template>
 
 <script lang="ts">
-import { MailOutlined, BarsOutlined } from '@ant-design/icons-vue'
+import { GithubOutlined, BarsOutlined } from '@ant-design/icons-vue'
 import { defineComponent } from 'vue'
 
 export default defineComponent({
   components: {
-    MailOutlined,
+    GithubOutlined,
     BarsOutlined
   },
 

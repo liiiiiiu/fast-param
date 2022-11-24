@@ -1,30 +1,36 @@
-// import highlighting library
+import { ref } from 'vue'
 import { highlight, languages } from 'prismjs/components/prism-core'
 import 'prismjs/components/prism-clike'
 import 'prismjs/components/prism-javascript'
-// import syntax highlighting styles
 import 'prismjs/themes/prism-tomorrow.css'
 import useClipboard from 'vue-clipboard3'
 import Mock from 'mockjs'
 import { message } from 'ant-design-vue'
-import { ref } from 'vue'
+
 import { InputParamType } from '@/types'
 import { ravatar, rimage, rurl, rnickName, rtitle, rid, rphone, rdate, rdateInt, rcreatedAt, rcreatedAtInt, remail, rprovince, rcity, raddress, rdistrict, rip } from '@/utils/re'
 
 export default function (props) {
+  const code = ref(undefined)
+
   const DEFAULT_VALUE = 'null'
 
-  // const SPACE = '\xa0'
-  const SPACE = '\u00A0'
+  const SPACE = ' '
+
+  const INDENT = (num = 1) => {
+    if (typeof num !== 'number') num = 1
+
+    if (num === 0) return SPACE
+
+    return SPACE.repeat(+num || 1)
+  }
 
   const NEWLINE = '\n'
 
   const GET_DECLARATION = isTS => !isTS ? 'const' : 'interface'
 
-  let code = ref(undefined)
-
-  const quotationWrapper = (value = '', isDouble: boolean = false) => {
-    let quotation = isDouble ? '"' : "'"
+  const QUOTES = (value = '', isDouble: boolean = false) => {
+    const quotation = isDouble ? '"' : "'"
 
     return `${quotation + value + quotation}`
   }
@@ -36,7 +42,7 @@ export default function (props) {
   function setDefault(defaultValue: any, types: string[], isDouble: boolean = false) {
     if (!types || !types.length) return defaultValue
 
-    return types[0] === 'string' ? quotationWrapper(defaultValue, isDouble) : defaultValue
+    return types[0] === 'string' ? QUOTES(defaultValue, isDouble) : defaultValue
   }
 
   // 根据类型给属性赋对应的空值
@@ -48,7 +54,7 @@ export default function (props) {
 
       switch (type) {
         case 'string':
-          return quotationWrapper('', isDouble)
+          return QUOTES('', isDouble)
         case 'number':
           return 0
         case 'boolean':
@@ -95,7 +101,7 @@ export default function (props) {
       re: rid,
     },
     'phone': {
-      rule: "@phone",
+      rule: "@natural(18800000000, 18899999999)",
       re: rphone,
     },
     'date': {
@@ -144,7 +150,7 @@ export default function (props) {
     },
   }
   // 使用 Mock 给属性赋值
-  function setMock(name: string, type: string, isDouble: boolean = false) {
+  function setMock(name: string, type: string, isDouble: boolean = false, param: InputParamType) {
     // console.log('name', name, type)
 
     if (!type) return DEFAULT_VALUE
@@ -156,7 +162,7 @@ export default function (props) {
     if (type.indexOf('[]') > -1) {
       // string[] any[]
       if (type.indexOf('string') > -1 || type.indexOf('any') > -1) {
-        return `[${Array.from({ length: 5 }, () => `${quotationWrapper(Mock.mock('@ctitle'), isDouble)}`)}]`
+        return `[${Array.from({ length: 5 }, () => `${QUOTES(Mock.mock('@ctitle'), isDouble)}`)}]`
       }
       // number[]
       else if (type.indexOf('number') > -1) {
@@ -170,19 +176,26 @@ export default function (props) {
 
     let final: any;
 
+    const mockString = () => {
+      let res = '@ctitle'
+      if (param.min || param.max) {
+        res = `@ctitle(${param.min || 1}, ${param.max || 50})`
+      }
+      return res
+    }
+
     for (let key in _internalMockRules) {
       let value = _internalMockRules[key]
       if (value.re && value.re.test(name + '')) {
-        final = value.rule
+        final = value.rule !== '@ctitle' ? value.rule : mockString()
         break
       }
     }
-    // console.log('name', name, type, final);
 
     if (!final) {
       switch(type) {
         case 'string':
-          final = '@ctitle'
+          final = mockString()
           break
         case 'number':
           final = '@integer(0, 100)'
@@ -203,7 +216,7 @@ export default function (props) {
 
     try {
       let result = Mock.mock(final)
-      return result && type === 'string' ? quotationWrapper(result, isDouble) : result
+      return result && type === 'string' ? QUOTES(result, isDouble) : result
     } catch (error: any) {
       throw Error(error)
     }
@@ -230,7 +243,7 @@ export default function (props) {
       // 拼接注释
       if (showComments && param.description) {
         // 缩进
-        strParams += SPACE.repeat(tabSize + extraSpace)
+        strParams += INDENT(tabSize + extraSpace)
         // 描述
         strParams += `// ${param.description}`
         // 换行
@@ -239,7 +252,7 @@ export default function (props) {
 
       // 拼接内容
       // 缩进
-      strParams += SPACE.repeat(tabSize + extraSpace)
+      strParams += INDENT(tabSize + extraSpace)
 
       // 属性：属性值
       if (!param.name) {
@@ -250,9 +263,9 @@ export default function (props) {
       let valueOrType = !isTS
                           ? !isMock
                               ? (!isNull && param.defaultValue)
-                                ? setDefault(param.defaultValue, param.types, props.doubleQuotation)
-                                :(param.types && param.types.length ? setDefaultByType(param.types, props.doubleQuotation) : DEFAULT_VALUE)
-                              : ((param.types && param.types.length) ? setMock(param.name, param.types[0], props.doubleQuotation) : DEFAULT_VALUE)
+                                ? setDefault(param.defaultValue, param.types, props.doubleQuote)
+                                :(param.types && param.types.length ? setDefaultByType(param.types, props.doubleQuote) : DEFAULT_VALUE)
+                              : ((param.types && param.types.length) ? setMock(param.name, param.types[0], props.doubleQuote, param) : DEFAULT_VALUE)
                           : (param.types && param.types.length) ? param.types.join(' | ') : DEFAULT_VALUE
       strParams += `${readonly}${param.name}${optional}${valueOrType}`
 
@@ -262,9 +275,9 @@ export default function (props) {
       strParams += ((!isPostman || (isPostman && index !== paramsLen - 1)) ? NEWLINE : '')
     }
 
-    return !isPostman ? SPACE.repeat(extraSpace) + `{`
+    return !isPostman ? INDENT(extraSpace) + `{`
                         + strParams
-                        + SPACE.repeat(extraSpace) + '}'
+                        + (extraSpace ? INDENT(extraSpace) : '') + '}'
                       : strParams
   }
 
@@ -326,7 +339,7 @@ export default function (props) {
       objMajor += NEWLINE
     }
 
-    let finalCode = objName
+    const finalCode = objName
                       + '['
                       + objMajor
                       + ']'
@@ -343,7 +356,7 @@ export default function (props) {
       return ''
     }
 
-    let objMajor = genObjMajor(raw, false, 0, false, false, false, true)
+    const objMajor = genObjMajor(raw, false, 0, false, false, false, true)
 
     code.value = objMajor
 
@@ -364,10 +377,18 @@ export default function (props) {
   }
 
   // 用于对象转为数组格式
-  let codeOrArrayTypeCode = ref(false)
+  const codeOrArrayTypeCode = ref(false)
 
   return {
     code,
+
+    SPACE,
+
+    INDENT,
+
+    NEWLINE,
+
+    QUOTES,
 
     highlighter,
 
