@@ -88,9 +88,11 @@ export default defineComponent({
 
       let schema = ''
 
-      schema += (BLUEPRINT + ARROW + 'id()' + SEMI)
-      schema += NEWLINE
-      schema += NEWLINE
+      if (props.raw && props.raw.length) {
+        schema += (BLUEPRINT + ARROW + 'id()' + SEMI)
+        schema += NEWLINE
+        schema += NEWLINE
+      }
 
       Array.from(props.raw, param => {
         const { name, types, max, defaultValue, description, frontend } = param
@@ -113,10 +115,12 @@ export default defineComponent({
         }
       })
 
-      schema += NEWLINE
-      schema += (BLUEPRINT + ARROW + 'softDeletes()' + SEMI)
-      schema += NEWLINE
-      schema += (BLUEPRINT + ARROW + 'timestamps()' + SEMI)
+      if (props.raw && props.raw.length) {
+        schema += NEWLINE
+        schema += (BLUEPRINT + ARROW + 'softDeletes()' + SEMI)
+        schema += NEWLINE
+        schema += (BLUEPRINT + ARROW + 'timestamps()' + SEMI)
+      }
 
       return { indexNames, schema }
     }
